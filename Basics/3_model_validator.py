@@ -1,12 +1,13 @@
-from pydantic import BaseModel, EmailStr, AnyUrl, Field, field_validator 
+# What we are going to test is: if age > 60 then emergency contact number should be there...
+
+from pydantic import BaseModel, EmailStr, AnyUrl, Field, field_validator, model_validator
 from typing import List, Dict, Optional, Annotated
-# we are checking is there .sbi.com, @hdfc.com is in the email or not
+
 class Patient(BaseModel):
     name: str
     email: EmailStr
     linkedin_url: AnyUrl
 
-    #surname: Optional[Annotated[str, Field(max_length=20, title='Your Surname', description='Give max of 20 length', examples=['Gill', 'Singh'])]]
     age: int
     weight: float
 
@@ -15,34 +16,15 @@ class Patient(BaseModel):
     contact_details: Dict[str, str]
     
     
-    @field_validator('email')
-    @classmethod
-    def email_validator(cls, value):
+    @model_validator(mode = 'after')
+    def validate_emergency_contact(cls, model):
         
-        valid_domain = ['hdfc.com', 'sbi.com']
-        #abc@gmail.com
+        if model.age> 60 and 'emergency' not in model.contact_details:
+            raise ValueError("Patients older than 60 must have an emergency contact")
         
-        domain_name = value.split('@')[-1]
-        
-        if domain_name not in valid_domain:
-            raise ValueError('not a valid domain')
-        
-        return value
+        return model
     
-    @field_validator('name')
-    @classmethod
-    def transfor_text(cls, value):
-        return value.upper()
     
-    @field_validator('age', mode='after')
-    @classmethod
-    def validate_age(cls, value):
-        
-        if 0< value < 100:
-            return value
-        else:
-            raise ValueError('Age Should be greator then 0 and less then 100')
-
 
 def insert_patient_data(patient: Patient):
     print(patient.name)
